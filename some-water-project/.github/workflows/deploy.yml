@@ -18,12 +18,17 @@ concurrency:
 jobs:
   build:
     runs-on: ubuntu-latest
+    defaults:
+      run:
+        # ゲームのファイルは some-water-project フォルダの中にある
+        working-directory: some-water-project
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-node@v4
         with:
           node-version: 22
           cache: npm
+          cache-dependency-path: some-water-project/package-lock.json
       - run: npm ci
       - run: npm test
       - id: pages
@@ -35,7 +40,7 @@ jobs:
           VITE_SITE_URL: ${{ steps.pages.outputs.base_url }}/
       - uses: actions/upload-pages-artifact@v3
         with:
-          path: dist
+          path: some-water-project/dist
 
   deploy:
     needs: build
