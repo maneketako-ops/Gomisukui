@@ -1,0 +1,173 @@
+<!doctype html>
+<html lang="ja">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
+    <title>お風呂のゴミすくい</title>
+    <meta name="description" content="湯船に浮いたゴミを手ですくう制限時間つきのゲーム。手に乗ってもスルッと逃げる、物理シミュレーションの水が相手です。スマホでもパソコンでも遊べます。" />
+    <meta name="theme-color" content="#1f7a9c" />
+    <link rel="icon" href="./favicon.svg" type="image/svg+xml" />
+    <link rel="apple-touch-icon" href="./apple-touch-icon.png" />
+    <!-- SNS で共有したときのカード（%VITE_SITE_URL% はビルド時に公開 URL へ置き換わる） -->
+    <meta property="og:type" content="website" />
+    <meta property="og:site_name" content="お風呂のゴミすくい" />
+    <meta property="og:title" content="お風呂のゴミすくい" />
+    <meta property="og:description" content="湯船に浮いたゴミを手ですくえ。手に乗ってもスルッと逃げる、物理シミュレーションの水が相手。75 秒で何個すくえる？" />
+    <meta property="og:url" content="%VITE_SITE_URL%" />
+    <meta property="og:image" content="%VITE_SITE_URL%og.png" />
+    <meta property="og:image:width" content="1200" />
+    <meta property="og:image:height" content="630" />
+    <meta property="og:image:alt" content="湯船に浮いたゴミと、それをすくう手" />
+    <meta property="og:locale" content="ja_JP" />
+    <meta name="twitter:card" content="summary_large_image" />
+    <meta name="twitter:title" content="お風呂のゴミすくい" />
+    <meta name="twitter:description" content="手に乗ってもスルッと逃げる。75 秒で何個すくえる？" />
+    <meta name="twitter:image" content="%VITE_SITE_URL%og.png" />
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link
+      rel="stylesheet"
+      href="https://fonts.googleapis.com/css2?family=M+PLUS+Rounded+1c:wght@500;800&display=swap"
+    />
+    <link rel="stylesheet" href="./src/style.css" />
+  </head>
+  <body>
+    <div id="app"></div>
+
+    <div id="loading">
+      <div class="spinner"></div>
+      <p>手のモデルを生成しています…</p>
+    </div>
+
+    <!-- ゲーム中の表示 -->
+    <div id="hud" hidden>
+      <div class="hud-cell hud-time">
+        <span class="hud-label">のこり</span>
+        <span id="hudTime" class="hud-value">1:15</span>
+      </div>
+      <div class="hud-cell">
+        <span class="hud-label">スコア</span>
+        <span id="hudScore" class="hud-value">0</span>
+      </div>
+      <div class="hud-cell">
+        <span class="hud-label">ゴミ</span>
+        <span id="hudLeft" class="hud-value">12</span>
+      </div>
+      <button id="quitBtn" class="hud-quit" aria-label="ゲームをやめる">やめる</button>
+    </div>
+    <div id="popups" aria-live="polite"></div>
+    <div id="banner" aria-live="assertive"></div>
+    <div id="vignette" aria-hidden="true"></div>
+    <div id="toast" role="status"></div>
+    <p id="hint" hidden></p>
+    <button id="diveBtn" hidden aria-label="押している間 手を沈める">
+      <span class="dive-main">すくう</span>
+      <span class="dive-sub">押して沈める・離す</span>
+    </button>
+
+    <!-- タイトル -->
+    <section id="title" class="overlay">
+      <div class="sheet">
+        <p class="eyebrow">お風呂そうじミニゲーム</p>
+        <h1 class="game-title">ゴミすくい</h1>
+        <p class="lead">湯船に浮いたゴミを、手ですくって集めよう。<br />制限時間は <b>75</b> 秒。</p>
+        <ol class="steps">
+          <li><span><b>ゴミの真下</b>で手を沈める</span></li>
+          <li><span>そのまま<b>持ち上げる</b>と手のひらに乗る</span></li>
+          <li><span>水が抜けて輪っかが満ちるまで<b>じっと耐える</b>と回収</span></li>
+        </ol>
+        <div class="controls-help">
+          <p class="only-pointer"><b>パソコン</b> マウスで手を動かし、<b>クリックしている間</b>沈める（Space キーでも可）</p>
+          <p class="only-touch"><b>スマホ</b> 画面をなぞって手を動かし、右下の<b>「すくう」ボタン</b>を押している間沈める</p>
+        </div>
+        <ul class="legend" aria-label="ゴミの種類と点数">
+          <li><i class="sw sw-hair"></i>髪の毛<span>30</span></li>
+          <li><i class="sw sw-lint"></i>糸くず<span>20</span></li>
+          <li><i class="sw sw-chip"></i>木くず<span>15</span></li>
+          <li><i class="sw sw-leaf"></i>葉っぱ<span>10</span></li>
+        </ul>
+        <p class="note">一度に何個もすくうと得点が個数倍。手に乗っても水が抜けきるまでは油断禁物、スルッと逃げます。慌てて動かすと波でゴミが逃げます。</p>
+        <div class="actions">
+          <button id="startBtn" class="primary">スタート</button>
+          <button id="freeBtn">自由に遊ぶ</button>
+        </div>
+        <div class="title-foot">
+          <p class="best">ベストスコア <span id="bestScore">–</span></p>
+          <button id="qualityBtn" class="link-btn" title="重いときは「低」にすると軽くなります">画質：自動</button>
+        </div>
+      </div>
+    </section>
+
+    <!-- 結果 -->
+    <section id="result" class="overlay" hidden>
+      <div class="sheet">
+        <p id="resultHead" class="eyebrow">タイムアップ</p>
+        <div class="rank-row">
+          <span id="resultRank" class="rank">B</span>
+          <div>
+            <p class="score-big"><span id="resultScore">0</span><small>点</small></p>
+            <p id="resultRankText" class="rank-text"></p>
+          </div>
+        </div>
+        <dl class="breakdown">
+          <div><dt>すくったゴミ</dt><dd id="resultCount">0 / 12</dd></div>
+          <div><dt>キャッチした回数</dt><dd id="resultCatch">0</dd></div>
+          <div><dt>スルッと逃げられた</dt><dd id="resultMiss">0</dd></div>
+          <div><dt>最大コンボ</dt><dd id="resultCombo">×1</dd></div>
+          <div><dt>時間ボーナス</dt><dd id="resultBonus">0</dd></div>
+          <div><dt>ベストスコア</dt><dd id="resultBest">0</dd></div>
+        </dl>
+        <p id="newBest" class="new-best" hidden>ベストスコア更新！</p>
+        <div class="share">
+          <button id="shareX" class="share-x">
+            <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M18.9 2H22l-6.8 7.8L23 22h-6.2l-4.8-6.3L6.4 22H3.3l7.3-8.3L1 2h6.3l4.4 5.8L18.9 2Zm-1.1 18h1.7L6.3 3.9H4.5L17.8 20Z" /></svg>
+            結果をポスト
+          </button>
+          <button id="shareMore" hidden>ほかのアプリで共有</button>
+        </div>
+        <p id="shareNote" class="share-note" hidden></p>
+        <div class="actions">
+          <button id="retryBtn" class="primary">もう一度</button>
+          <button id="toTitleBtn">タイトルへ</button>
+        </div>
+      </div>
+    </section>
+
+    <!-- 自由に遊ぶ -->
+    <header id="panel" class="card" hidden>
+      <div class="panel-head">
+        <h1>自由に遊ぶ</h1>
+        <button id="panelTitleBtn" class="link-btn">タイトルへ</button>
+      </div>
+      <div class="poses" role="group" aria-label="手の形">
+        <button data-pose="scoop" class="active"><kbd>1</kbd>すくう</button>
+        <button data-pose="stir"><kbd>2</kbd>かき混ぜる</button>
+        <button data-pose="open"><kbd>3</kbd>パー</button>
+        <button data-pose="fist"><kbd>4</kbd>グー</button>
+      </div>
+      <div class="toggles">
+        <button id="pourBtn" title="押している間、手を傾けて水をこぼす"><kbd>T</kbd>傾ける</button>
+        <button id="faucetBtn" title="蛇口から水を出す"><kbd>F</kbd>蛇口</button>
+        <button id="resetBtn" title="水と手を初期状態に戻す"><kbd>R</kbd>リセット</button>
+      </div>
+      <dl class="stats">
+        <div><dt>水位</dt><dd id="statLevel">–</dd></div>
+        <div><dt>手の中の水</dt><dd id="statHand">–</dd></div>
+        <div><dt>しぶき粒子</dt><dd id="statParticles">–</dd></div>
+        <div><dt>FPS</dt><dd id="statFps">–</dd></div>
+      </dl>
+    </header>
+
+    <aside id="help" class="card" hidden>
+      <button id="helpToggle" aria-expanded="true">操作方法</button>
+      <ul>
+        <li><b>マウス移動 / 指でなぞる</b> 手を動かす</li>
+        <li><b>クリック・Space・「すくう」ボタンを押している間</b> 手を沈める</li>
+        <li><b>右ドラッグ</b> 視点を回す ／ <b>ホイール</b> ズーム ／ スマホは 2 本指</li>
+        <li><b>Q / E</b> 手の高さ ／ <b>Z / X</b> 手の向き ／ <b>T</b> 傾ける</li>
+      </ul>
+    </aside>
+
+    <script type="module" src="./src/main.js"></script>
+  </body>
+</html>
